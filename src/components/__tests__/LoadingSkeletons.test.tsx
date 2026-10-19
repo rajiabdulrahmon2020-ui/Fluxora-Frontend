@@ -1,10 +1,14 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { MemoryRouter } from "react-router-dom";
 import { describe, it, expect, vi } from "vitest";
 import StreamsLoading from "../StreamsLoading";
 import TreasuryOverviewLoading from "../TreasuryOverviewLoading";
 import RecipientLoading from "../RecipientLoading";
+import ActivityHeatmap from "../treasuryOverviewPage/ActivityHeatmap";
 import { LOADING_TEST_IDS } from "../Skeleton";
+import StreamRow from "../treasuryOverviewPage/StreamRow";
+import type { Stream } from "../treasuryOverviewPage/Stream";
 
 describe("StreamsLoading", () => {
   it("escalates after the shared retry cutoff and offers manual retry", async () => {
@@ -59,6 +63,84 @@ describe("StreamsLoading", () => {
     );
     expect(focusable).toHaveLength(0);
   });
+
+  it("default variant renders 4 columns per row (no checkbox/ACTION)", () => {
+    const { container } = render(<StreamsLoading />);
+    const firstRowCells = container.querySelectorAll("tbody tr:first-child td");
+    expect(firstRowCells).toHaveLength(4);
+  });
+});
+
+describe("StreamsLoading (treasury variant)", () => {
+  it("escalates after the shared retry cutoff and offers manual retry, same as the default variant", async () => {
+    const onRetry = vi.fn();
+    render(<StreamsLoading variant="treasury" retryCount={3} onRetry={onRetry} />);
+    expect(screen.getByRole("alert")).toHaveTextContent("Automatic retries have stopped");
+    await userEvent.click(screen.getByRole("button", { name: "Try again" }));
+    expect(onRetry).toHaveBeenCalledTimes(1);
+  });
+
+  it("renders 6 columns per row, matching StreamRow's column count", () => {
+    const { container } = render(<StreamsLoading variant="treasury" />);
+    const firstRowCells = container.querySelectorAll("tbody tr:first-child td");
+    expect(firstRowCells).toHaveLength(6);
+  });
+
+  it("renders a checkbox-width placeholder cell and an ACTION column header", () => {
+    render(<StreamsLoading variant="treasury" />);
+    expect(screen.getByText("ACTION")).toBeInTheDocument();
+    expect(screen.getByText("Select for compare")).toBeInTheDocument();
+  });
+
+  it("uses the same padding classes as StreamRow (py-4 px-3)", () => {
+    const { container } = render(<StreamsLoading variant="treasury" />);
+    const cells = container.querySelectorAll("tbody tr:first-child td");
+    cells.forEach((cell) => {
+      expect(cell).toHaveClass("py-4", "px-3");
+    });
+  });
+
+  it("has role=status with correct aria-label and aria-busy", () => {
+    render(<StreamsLoading variant="treasury" />);
+    const region = screen.getByRole("status");
+    expect(region).toHaveAttribute("aria-label", "Loading streams");
+    expect(region).toHaveAttribute("aria-busy", "true");
+  });
+
+  it("contains no focusable interactive elements", () => {
+    const { container } = render(<StreamsLoading variant="treasury" />);
+    const focusable = container.querySelectorAll(
+      "a, button, input, select, textarea, [tabindex]:not([tabindex='-1'])"
+    );
+    expect(focusable).toHaveLength(0);
+  });
+
+  it("matches the column count rendered by the real StreamRow (no layout shift on load)", () => {
+    const stream: Stream = {
+      id: "STR-900",
+      name: "Security Review Grant",
+      recipient: "GABCDEFGHIJKLMNOPQRSTUVWXYZ23456789WXYZ",
+      rate: "2,500 USDC/mo",
+      accruedAmount: 1234.56,
+      status: "Active", accruedAmount: 0, startDate: "2026-01-01",
+    };
+
+    const { container: loadingContainer } = render(<StreamsLoading variant="treasury" />);
+    const { container: populatedContainer } = render(
+      <MemoryRouter>
+        <table>
+          <tbody>
+            <StreamRow stream={stream} onSelect={vi.fn()} onCompareToggle={vi.fn()} />
+          </tbody>
+        </table>
+      </MemoryRouter>
+    );
+
+    const skeletonCellCount = loadingContainer.querySelectorAll("tbody tr:first-child td").length;
+    const populatedCellCount = populatedContainer.querySelectorAll("tbody tr td").length;
+
+    expect(skeletonCellCount).toBe(populatedCellCount);
+  });
 });
 
 describe("TreasuryOverviewLoading", () => {
@@ -86,6 +168,22 @@ describe("TreasuryOverviewLoading", () => {
     expect(metricsGrid).not.toBeNull();
     // 3 direct children (the SkeletonCard wrappers)
     expect(metricsGrid!.children).toHaveLength(3);
+  });
+
+  it("reserves the resolved heatmap panel footprint", () => {
+    const { container: loadingContainer } = render(<TreasuryOverviewLoading />);
+    const loadingHeatmap = loadingContainer.querySelector("[data-testid='treasury-activity-heatmap-loading']") as HTMLElement;
+
+    const { container: resolvedContainer } = render(<ActivityHeatmap streams={[]} loading={true} />);
+    const resolvedHeatmap = resolvedContainer.querySelector(".activity-heatmap-container") as HTMLElement;
+
+    expect(loadingHeatmap).toBeInTheDocument();
+    expect(resolvedHeatmap).toBeInTheDocument();
+    expect(loadingHeatmap.style.padding).toBe(resolvedHeatmap.style.padding || "var(--space-xl)");
+    expect(loadingHeatmap.querySelectorAll(".heatmap-grid .skeleton")).toHaveLength(
+      resolvedHeatmap.querySelectorAll(".heatmap-grid .heatmap-cell").length,
+    );
+    expect(loadingHeatmap.querySelector(".heatmap-legend")).toBeInTheDocument();
   });
 
   it("renders table column headers", () => {

@@ -1,4 +1,5 @@
 import { isValidStellarAddress } from "../lib/stellar";
+import { logger } from "../lib/logger";
 
 export type StreamStatus = "Active" | "Paused" | "Completed";
 export type StreamHealth = "Healthy" | "Attention" | "Settled";
@@ -15,6 +16,8 @@ export interface StreamTimelineEvent {
 export interface StreamRecord {
   /** Unique identifier, e.g., 'STR-001' */
   id: string;
+  /** Only explicitly public streams may expose stream fields in OG images. */
+  public?: boolean;
   /** Non-empty friendly name of the stream */
   name: string;
   /** Friendly name of the recipient */
@@ -588,7 +591,7 @@ export function getStreamRecords(): StreamRecord[] {
     return streamRecords.filter((record) => {
       const errors = validateStreamRecord(record);
       if (errors.length > 0) {
-        console.warn(
+        logger.warn(
           `Skipping malformed StreamRecord ID '${record.id}' in production due to validation errors:\n${errors.map((e) => `- ${e}`).join("\n")}`,
         );
         return false;
@@ -607,3 +610,15 @@ export const _streamRecords = streamRecords;
 
 // Public alias retained for existing consumers (Streams page/tests).
 export { streamRecords };
+
+// Canonical record re-exports for precision-safe token accounting
+export type { CanonicalStreamRecord } from "./canonicalStreamRecord";
+export {
+  normalizeCanonicalStreamRecord,
+  validateCanonicalStreamRecord,
+  toCanonical,
+  readTokenAmount,
+  deriveRemainingAmount,
+  deriveCanonicalProgress,
+} from "./canonicalStreamRecord";
+

@@ -20,6 +20,7 @@ describe("ToastNotification aria-live semantics", () => {
       const el = screen.getByRole(expectedRole as "alert" | "status");
       expect(el).toHaveAttribute("aria-live", expectedLive);
       expect(el).toHaveAttribute("aria-atomic", "true");
+      expect(el).not.toHaveAttribute("aria-label");
     },
   );
 
@@ -32,6 +33,7 @@ describe("ToastNotification aria-live semantics", () => {
     const el = screen.getByRole("alert");
     expect(el).toHaveAttribute("aria-live", "assertive");
     expect(el).toHaveAttribute("aria-atomic", "true");
+      expect(el).not.toHaveAttribute("aria-label");
     expect(screen.getByText("unknown msg")).toBeInTheDocument();
   });
 
@@ -66,3 +68,16 @@ describe("ToastNotification undo action", () => {
     expect(onClose).toHaveBeenCalledOnce();
   });
 });
+
+describe("ToastNotification keyboard interactions", () => {
+  it("dismisses the toast when Escape key is pressed", () => {
+    const onClose = vi.fn();
+    render(
+      <ToastNotification message="Escape me" variant="info" onClose={onClose} />,
+    );
+    
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+    expect(onClose).toHaveBeenCalledOnce();
+  });
+});
+

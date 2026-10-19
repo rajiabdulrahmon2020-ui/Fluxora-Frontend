@@ -13,7 +13,13 @@ export default defineConfig({
     environment: "jsdom",
     setupFiles: "./src/test/setup.ts",
     // Playwright owns the e2e/ specs; keep them out of the vitest run.
-    exclude: [...configDefaults.exclude, "e2e/**"],
+    // .kilo/.kiro are benchmark-tooling worktree/spec artifacts, never tests.
+    exclude: [
+      ...configDefaults.exclude,
+      "e2e/**",
+      ".kilo/**",
+      ".kiro/**",
+    ],
     coverage: {
       provider: "v8",
       reporter: ["text", "json", "html"],
@@ -36,11 +42,15 @@ export default defineConfig({
         "src/components/WalletIcon.tsx",
         "src/components/treasuryOverviewPage/MetricCard.tsx",
         "src/components/treasuryOverviewPage/StatusPill.tsx",
+        "src/design-tokens.css",
         "src/components/treasuryOverviewPage/Metrics.tsx",
         "src/components/treasuryOverviewPage/RecentStreams.tsx",
         "src/components/treasuryOverviewPage/StreamRow.tsx",
         "src/components/treasuryOverviewPage/useTreasury.ts",
         "src/components/wallet-connect/Walletbutton.tsx",
+        "src/components/wallet-connect/useWalletStateMachine.ts",
+        "src/components/wallet-connect/WalletConnectionNotice.tsx",
+        "src/components/ConnectWalletModal.tsx",
         "src/data/streamRecords.ts",
         "src/fixtures/malformedStreamRecords.ts",
         "src/lib/formatters.ts",
@@ -51,6 +61,8 @@ export default defineConfig({
         "src/lib/recentStreamMapper.ts",
         "src/lib/sorobanTxStatus.ts",
         "src/theme/ThemeProvider.tsx",
+        "src/theme/themeBootstrap.ts",
+        "src/theme/themeEditorModel.ts",
         // Colour-blind simulation module
         "src/components/colorBlindSimulation/ColorBlindSimulationProvider.tsx",
         "src/components/colorBlindSimulation/ColorBlindToggle.tsx",
@@ -72,6 +84,24 @@ export default defineConfig({
         "src/components/csv-upload/CsvDropZone.tsx",
         "src/components/csv-upload/ColumnMappingStep.tsx",
         "src/components/csv-upload/PreviewValidateStep.tsx",
+        // Security headers (CSP + browser security header definitions, #1408)
+        "src/lib/securityHeaders.ts",
+        // Issue #1410: split Streams page data loading from table rendering
+        "src/pages/useStreamsData.ts",
+        "src/components/Streams/StreamsListPanel.tsx",
+        // Issue #1656: keyboard shortcuts must not conflict with assistive technology
+        "src/components/KeyboardShortcutsModal.tsx",
+        "src/hooks/useKeyboardShortcuts.ts",
+        // Issue #1669: zero-accrual banner condition utility
+        "src/lib/zeroAccrualBannerCondition.ts",
+        // Issue #1724: Input ARIA invalid state (component already covered; utility explicit)
+        "src/components/Input.tsx",
+        // Issue #1788: focus management on route change
+        "src/hooks/useRouteFocus.ts",
+        // Voice mic button — recording state must be conveyed non-visually
+        "src/components/voice/VoiceMicButton.tsx",
+        // Issue #1687: voice stream identification must refuse ambiguity
+        "src/components/voice/streamIdentifier.ts",
       ],
       exclude: [
         "src/components/**/*.test.tsx",
